@@ -1,0 +1,216 @@
+---
+title: "MEMORANDUM"
+author: "Neha Tiwari, Yining Li, Ziqi Niu, Landry Keyanfe"
+date: "March 31, 2019"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, , message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(knitr)
+opts_chunk$set(results = 'asis',      # This is essential (can also be set at the chunk-level)
+                comment = NA, 
+                prompt = FALSE, 
+                cache = FALSE)
+
+library(summarytools)
+st_options(plain.ascii = FALSE,       # This is very handy in all Rmd documents
+            style = "rmarkdown",        # This too
+            footnote = NA,             # Avoids footnotes which would clutter the results
+            subtitle.emphasis = FALSE  # This is a setting to experiment with - according to
+ )                                     # the theme used, it might improve the headings' 
+                                       # layout
+
+
+```
+
+```{r, echo=FALSE, , message=FALSE, warning=FALSE}
+st_css() # This is a must; without it, expect odd layout,
+```  
+
+
+```{r, echo=FALSE,  message=FALSE, warning=FALSE}
+permit=read_csv('C:/Users/tneha/Desktop/coursework/anly/project/data/dcra/permit_reviews.csv')
+dd <- read_excel("C:/Users/tneha/Desktop/coursework/anly/project/data/dem_data_psa.xlsx")
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+#creating a dataframe with potential variable
+
+data= select(permit,alias,permit_cap_status,use_type,Project_Status,ReviewCycle,elapsed_workdays,Fee_Assessed,job_class,over_30,AGENCY,pdox,est_worktime,Ward,rc_1_time,rc_time,permit_type,proposed_use_of_building,proposed_number_stories,proposed_number_units,existing_number_units)
+
+data$SSL=permit$ssl
+#Creating dataframe containing rows with missing values
+
+na_vec2=which(!complete.cases(data))
+  
+data=data[-na_vec2,]
+
+#filtering by permit issued
+data=filter(data,permit_cap_status=='Permit Issued')
+
+#checking for missing values
+permit_missing <- function(df){
+  missing <- df %>% 
+    mutate_all(is.na) %>% 
+    summarise_all(sum) %>% 
+    gather(variable, missing)
+  return(missing)
+}
+
+#print(permit_missing(data))
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+
+data$use_type=ifelse(data$use_type=="R",'Residential','Other')
+data$permit_type=ifelse(data$permit_type=="Construction",'Construction','Shop Drawing')
+
+#data$permit_type= as.factor(data$permit_type)
+#data$use_type= as.factor(data$use_type)
+
+```
+
+**DATA**
+
+**DCRA Dataset**
+This dataset was created and provided by the DCRA for this project's purpose. It contains information gathered along the permitting process. For our analysis, we retained only the observations where permits have been issued in order to predict the process timeframe. The dataset has 107742 observations.  
+
+Our Key variables are:  
+*QueueTime* a dummy variable that takes a value of 1 if the permit process took more than 30 business days to complete, and ) otherwise. See figure 1.   
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE, fig.width=5,fig.height=3.5}
+ggplot(data, aes(x = over_30)) + geom_bar() + stat_count(aes(label=paste0(sprintf("%1.1f", ..count../sum(..count..)*100), "%\n", ..count..), y=0.5*..count..),geom="text", colour="white", size=4)+labs(x='time',y="count" , title="figure1:Permit Processing Time") + theme_bw()
+```
+  
+*UseType* A dummy variable that takes the value 1 if the property for which the permit is intended is residential, otherwise, 0 for commercial use type. The DCRA dataset contains 39.9% residential property (see figure 2).    
+
+```{r,echo=FALSE, fig.width=5,fig.height=3}
+ggplot(data, aes(x = use_type)) + geom_bar() + stat_count(aes(label=paste0(sprintf("%1.1f", ..count../sum(..count..)*100), "%\n", ..count..), y=0.5*..count..),geom="text", colour="white", size=4)+labs( x='use type', y = "count", title="figure 2") 
+
+```
+*PermitType* A dummy variable that takes a value of 1 if the permit type is construction, and 0 otherwise. 94.8% of the permits issued belong to the construction type. 
+
+```{r,echo=FALSE, fig.width=5,fig.height=3.5}
+ggplot(data, aes(x = permit_type)) + geom_bar() + stat_count(aes(label=paste0(sprintf("%1.1f", ..count../sum(..count..)*100), "%\n", ..count..), y=0.5*..count..),geom="text", colour="black", size=4)+labs( x='permit type', y = "count", title="figure ") 
+
+```
+*Ward* The District of Columbia have eight Council Wards that are political areas used to elect members of the Council of the District of Columbia . The ward variable shows which ward the license request originated from.
+
+
+```{r,echo=FALSE, fig.width=6,fig.height=4}
+ggplot(data, aes(x = over_30, fill  = use_type)) + theme_bw() + facet_wrap(~ Ward) + geom_bar()  + labs(x='permit issuance time',y= "Count", title="Permit issuance time per ward/Property type")
+
+```
+
+**Business License Dataset**
+
+This dataset has 57 observations of 11 variables each. The dataset consists of socio-economic variables that can be used to evaluate the correlation between business licenses issued and socio-economic indicators across the 57 Police Service Areas(PSA) in the District of Columbia(DC). The data has been collected from public datasets[1].
+The variables are all numerical and continuous and the summary of distribution has been provided. 
+The variables in the dataset are:
+
+1. *BusiLicenses* The number of business licenses issued across different PSAs in 2018. This variable forms our target array for the 'business' component of the model. The rest of the variables will form the feature matrix. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$biz_license_2018)), digits = 2)
+```
+
+2. *Population* The total population across different PSAs from Census 2010 data. Through this variable we controll for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$TotPop_2010)), digits = 2)
+```
+
+3. *Poverty*	The percentage of population below the poverty line across the PSAs for the 2011-15 period. Through this variable we controll for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$PctPoorPersons_2011_15)), digits = 2)
+```
+
+4. *Unemployment*	The percentage of unemployed persons across the PSAs for the 2011-15 period. Through this variable we controll for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$PctUnemployed_2011_15)), digits = 2)
+```			
+
+5. *AvgFamilyIncome*	The average household income across the PSAs for the 2011-15 period. Through this variable we controll for demographic and economic characteristics across PSAs to get an estimate of business activity. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$AvgFamilyIncAdj_2011_15)), digits = 2)
+```			
+
+6. *PropertyCrime*The rate of property crimes across the PSAs for the 2016. Through this variable we controll for factors that may inhibit/impact business activity across PSAs. 
+The variable distribution is as follows:
+
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$Rate_crimes_pt1_property_2016)), digits = 2)
+```
+
+7. *ViolentCrime*	The rate of violent crimes across the PSAs for the 2016. Through this variable we controll for factors that may inhibit/impact business activity across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+kable(as.data.frame(summarytools::descr(dd$Rate_crimes_pt1_violent_2016)), digits = 2)
+```			
+
+8. *BuildingLicenses* The number of building licenses issued across different PSAs in 2018. It is a part of the feature matrix and through it we controll for the building activity across PSAs, as an indicator of economic activity.  
+The variable distribution is as follows:
+```{r, echo=FALSE}
+#broom::tidy(summary(dd$building_lic_2018))
+kable(as.data.frame(summarytools::descr(dd$building_lic_2018)), digits = 2)
+```
+
+9. *ConstructionLicenses* The number of construction licenses issued across different PSAs in 2018. It is a part of the feature matrix and we use it as an indicator of economic activity.  
+The variable distribution is as follows:
+```{r, echo=FALSE}
+#broom::tidy(summary(dd$construction_lic_2018))
+kable(as.data.frame(summarytools::descr(dd$construction_lic_2018)), digits = 2)
+```
+
+10. *PSA* Each ward in DC has between 6-8 PSAs. There are a total of 57 PSAs in the District of Columbia. We have chosen PSA as our unit of analysis for this dataset. It is a dummy variable created through factoring in the 'business model' where 1 identifies the PSA being referred to. 
+
+
+
+**METHODOLOGY**
+
+The study employs three stages of analysis using DCRA and public datasets. In the first stage, both a decision tree model and a regression model will be considered to predict the queue time. In the second stage, a regression analysis will be adopted to identify the relationship between the number of business licenses issued and relevant socio-economic factors. Finally, we will predict the permit application score based on a linear combination of queue time and commercial effect. The efficiency of permit review will be evaluated as follow:
+
+$$ Score = p\times QueueTime +q\times BusiLicenses     $$    (1)
+
+
+**Predicting queue time**
+
+In order to predict queue time with accuracy, we will first consider using a decision tree model whose features include permit type, use type and ward. Since all the variables in our feature matrix are categorical, a decision tree might be a better fit because we can't make assumptions about the spatial distribution of the data or their relationship. 
+Additionally, we also plan to use a linear regression model to figure out the relationship between features and the target. For example, we want to know how permit type affects queue time in order to make recommendation for shortening queue time. Then, equation (2) will be used for computing queue time:
+
+
+$ QueueTime  = \beta_0 + \beta_1 PermitType + \beta_2 UseType + \beta_3 Ward + \epsilon $ (2)
+
+The choice of model would be based on how the two models perform in terms of accuracy scores, validation and learning curves. 
+
+
+**Analyzing Business Licenses*
+
+Using the number of business licenses issued per Police Service Area(PSA) as the response variable and multiple socio-economic indicators as predictors, a linear regression analysis can be performed to examine the relationship between the potential commercial effect and regional economic factors. The reason for choosing PSA as the granular level of analysis is that it is smaller than ward level, and has sufficient socio-economic data available to allow analysis. We can merge the this dataset with the *QueueTime* dataset through their PSA identifier, which can be found out by permit application addresses. This model can help DCRA prioritize licenses in certain PSAs by understanding the relationship between licenses and socio-economic indicators. 
+The following equation will be used for computing licensing issues:
+
+$$ BusiLicenses = \beta_0 + \beta_1Population + \beta_2Poverty + \beta_3Unemployment + $$$  
+$$ \beta_4AvgFamilyIncome  + \beta_5PropertyCrime + \beta_6ViolentCrime + $$ 
+$$ \beta_7BuildingLicenses + \beta_8ConstructionLicenses +  factor(PSA)   $$     (3)                                                           
+    
+The coefficients (0 to 10) will be estimated using Ordinary Least Squares model where the sum of squared residuals is minimized. We will adjust for unit fixed affect of PSAs by creating dummy variables by factoring. In order to determine whether all of these predictors are associated with the response, we will conduct a hypothesis test which compares the difference under two conditions: all the coefficients are zero and at least one coefficient is non-zero. The larger f-statistics suggests that at least one of the economic indicators must be related to the license issuing. We will select variables by comparing different models, each containing a different subset of predictors. The best model will be considered based on F test and the model fit through R-squared value. Although the linear regression model is easy to interpret, this parametric method may produce suspect predictions if the true functional form is far from linear[2]. 
+
+**Measuring Review Efficiency:**
+The objective of the model is to evaluate the maximum potential effect of a project given the queue time and number of license issued (Equation (1)). Considering gradient ascent has strong capability of self-learning, we choose gradient ascent approach to getting weights p and q and maximum score. After setting the initial weights (e.g., p=q=0.5), we want to update the weights using a subset of training so that they can push down the mean square error (MSE) by iteration toward the direction where the function increases most[3]. When the variance of error is small enough the learning process will stop until we hopefully end up at a maximum score.
+
+**REFERNCEs**
+[1]https://www.neighborhoodinfodc.org/anc12/anc.html 
+http://opendata.dc.gov/datasets/42cbd10c2d6848858374facb06135970_9
+http://opendata.dc.gov/datasets/construction-permits-via-ddot-tops 
+[2]  James, G., Witten, D., Hastie, T., & Tibshirani, R. (2013). An introduction to statistical learning (p76).  New York: springer.
+[3] Thalles Silva. (2018). Machine Learning 101: An Intuitive Introduction to Gradient Descent. Retrieved from  https://towardsdatascience.com/machine-learning-101-an-intuitive-introduction-to-gradient-descent-366b77b52645
