@@ -2,7 +2,9 @@
 title: "MEMO-2"
 author: "Neha Tiwari, Yining Li, Ziqi Niu, Landry Keyanfe"
 date: "March 31, 2019"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +13,7 @@ library(ggplot2)
 library(tidyverse)
 library(readxl)
 
-dd <- read_excel("C:/Users/tneha/Desktop/coursework/anly/project/data/dem_data_psa.xlsx")
+dd <- read_excel("dem_data_psa.xlsx")
 
 ```
 
@@ -104,7 +106,11 @@ The following equation will be used for computing licensing issues:
 
 $$ BusiLicenses = \beta_0 + \beta_1Population + \beta_2Poverty + \beta_3Unemployment + \beta_4AvgFamilyIncome  + \beta_5PropertyCrime + \beta_6ViolentCrime + \beta_7BuildingLicenses + \beta_8ConstructionLicenses +  factor(PSA)   $$     (3)                                                           
 
-The coefficients (0 to 10) will be estimated using Ordinary Least Squares model where the sum of squared residuals is minimized. We will adjust for unit fixed effect of PSA by creating dummy variables. In order to determine whether all of these predictors are associated with the target, we will conduct a hypothesis test which compares the difference under two conditions: all the coefficients are zero and at least one coefficient is non-zero. The larger f-statistics suggests that at least one of the economic indicators must be related to the license issuing. We will select variables by comparing different models, each containing a different subset of predictors. The best model will be considered based on F test and the model fit through R-squared value. Although the linear regression model is easy to interpret, this parametric method may produce questionable predictions if the true functional form is far from the linearity. 
+The coefficients (0 to 10) will be estimated using Ordinary Least Squares model where the sum of squared residuals is minimized. We will adjust for unit fixed effect of PSA by creating dummy variables. In order to determine whether all of these predictors are associated with the target, we will conduct a hypothesis test which compares the difference under two conditions: all the coefficients are zero and at least one coefficient is non-zero. We will select variables by comparing different models, each containing a different subset of predictors. The best model will be considered based on F test and the model fit through R-squared value. Although the linear regression model is easy to interpret, this parametric method may produce questionable predictions if the true functional form is far from the linearity [1]. 
 
 *Measuring Review Efficiency:*
-The objective of the model is to evaluate the maximum potential effect of a project given the queue time and number of licenses issued (Equation (1)). Considering gradient ascent has strong capability of self-learning, we choose gradient ascent approach to getting weights p and q and maximum score. After setting the initial weights (saying p = q = 0.5), we want to update the weights using a subset of training so that they can push down the mean square error (MSE) by iteration toward the direction where the function increases most. When the variance of error is small enough, the learning process will stop until we hopefully end up at a maximum score.
+To get the weights p and q, we assume that the objective of the model is to evaluate the maximum score of a project given the queue time and number of licenses issued (Equation (1)) and choose gradient ascent as our approach considering its strong capability of self-learning. After setting the initial weights (saying p = q = 0.5), we want to update the weights using a subset of training so that they can push down the mean square error (MSE) by iteration toward the direction where the function increases most [2]. When the variance of error is small enough, the learning process will stop until we hopefully end up at a maximum score.
+
+**REFERNCE**
+[1]  James, G., Witten, D., Hastie, T., & Tibshirani, R. (2013). An introduction to statistical learning (p76).  New York: springer.
+[2] Thalles Silva. (2018). Machine Learning 101: An Intuitive Introduction to Gradient Descent. Retrieved from  https://towardsdatascience.com/machine-learning-101-an-intuitive-introduction-to-gradient-descent-366b77b52645
