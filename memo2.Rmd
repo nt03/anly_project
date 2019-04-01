@@ -1,0 +1,116 @@
+---
+title: "MEMO-2"
+author: "Neha Tiwari, Yining Li, Ziqi Niu, Landry Keyanfe"
+date: "March 31, 2019"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+
+dd <- read_excel("dem_data_psa.xlsx")
+
+```
+
+**BUSINESS LICENCE DATASET:**
+
+This dataset has 627 observations with 57 observations each for 11 variables. The dataset has socio-economic variables to evaluate the correlation between business licenses issued and socio-economic indicators across the 57 Police Service Areas(PSA) in the District of Columbia(DC). 
+The variables are all numerical and continuous and thus summary of distribution has been provided. 
+The variables in the dataset are:
+```{r, echo=FALSE}
+broom::tidy(names(dd))
+```
+
+1. *BusiLicenses:* The number of business licenses issued across different PSAs in 2018 forms our target array for the 'business' component of the model. The rest of the variables will form the feature matrix. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$biz_license_2018))
+```
+
+2. *Population:* The total population across different PSAs from Census 2010 data. Through this variable we are controlling for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$TotPop_2010))
+```
+
+3. *Poverty:*	The percentage of poor persons across the PSAs for the 2011-15 period. Through this variable we are controlling for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$PctPoorPersons_2011_15))
+```
+
+4. *Unemployment:*	The percentage of unemployed persons across the PSAs for the 2011-15 period. Through this variable we are controlling for demographic characteristics across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$PctUnemployed_2011_15))
+```	
+
+5. *AvgFamilyIncome:*	The average household income across the PSAs for the 2011-15 period. Through this variable we are controlling for demographic and economic characteristics across PSAs to get an estimate of business activity. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$AvgFamilyIncAdj_2011_15))
+```
+
+6. *PropertyCrime:*The rate of property crimes across the PSAs for the 2016. Through this variable we are controlling for factors that may inhibit/impact business activity across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$Rate_crimes_pt1_property_2016))
+```
+
+7. *ViolentCrime:*	The rate of violent crimes across the PSAs for the 2016. Through this variable we are controlling for factors that may inhibit/impact business activity across PSAs. 
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$Rate_crimes_pt1_violent_2016))
+```	
+
+8. *BuildingLicenses:* The number of building licenses issued across different PSAs in 2018. It is a part of the feature matrix and through it we are controlling for the building activity across PSAs, as an indicator of economic activity.  
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$building_lic_2018))
+```
+
+9. *ConstructionLicenses:* The number of construction licenses issued across different PSAs in 2018. It is a part of the feature matrix and we are using it as an indicator of economic activity.  
+The variable distribution is as follows:
+```{r, echo=FALSE}
+broom::tidy(summary(dd$construction_lic_2018))
+```
+
+10. *PSA:* Each ward has between 6-8 PSAs. There are a total of 57 PSAs in the District of Columbia. We have chosen PSA as our unit of analysis for this dataset. It is a dummy variable created through factoring in the 'business model' where 1 identifies the PSA being referred to.
+
+
+
+**METHODOLOGY**
+
+The study employs three stages of analysis using DCRA and public datasets. In the first stage, both decision tree model and regression model will be considered to predict the queue time. In the second stage, a regression analysis will be adopted to identify the relationship between the number of business licenses issued and relevant socio-economic factors. Finally, we will predict the permit application score based on the linear combination of queue time and commercial effect. The efficiency of permit review will be evaluated as follow:
+
+$$ Score = p\times QueueTime +q\times BusiLicenses     $$            (1)
+
+
+*Predicting queue time:*
+In order to predict queue time with accuracy, we will first consider using a decision tree model whose features include permit type, use type and ward. The reasoning behind choosing a decision tree model is that since all the variables in our feature matrix are categorical, a decision tree model might be a better fit since we can't make assumptions about the spatial distribution of the data or their relationships. 
+Additionally, we also plan to use a linear regression model to figure out the relationship between features and the target. For example, we want to know how permit type affects queue time in order to make recommendations for shortening queue time. Then, equation (2) will be used for computing queue time:
+
+$ QueueTime  = \beta_0 + \beta_1permitType + \beta_2useType + \beta_3ward + \epsilon $    (2)            
+
+The choice of model would be based on how the two models perform in terms of accuracy scores, validation and learning curves. 
+
+
+*Analyzing business licenses:*
+Using the number of business licenses issued per Police Service Area (PSA) as the target and multiple socio-economic indicators as features, a linear regression analysis can be performed to examine the relationship between the potential commercial effect and regional economic factors. The reason for choosing PSA as the granular level of analysis is that it is smaller than ward level, and has sufficient socio-economic data available to allow analysis. We can merge the this dataset with *QueueTime* dataset through their PSA identifier, which can be found out by permit application addresses. This model can help DCRA in prioritizing licenses in certain PSAs by understanding the relationship between licenses and socio-economic indicators. 
+The following equation will be used for computing licensing issues:
+
+$$ BusiLicenses = \beta_0 + \beta_1Population + \beta_2Poverty + \beta_3Unemployment + \beta_4AvgFamilyIncome  + \beta_5PropertyCrime + \beta_6ViolentCrime + \beta_7BuildingLicenses + \beta_8ConstructionLicenses +  factor(PSA)   $$     (3)                                                           
+
+The coefficients (0 to 10) will be estimated using Ordinary Least Squares model where the sum of squared residuals is minimized. We will adjust for unit fixed effect of PSA by creating dummy variables. In order to determine whether all of these predictors are associated with the target, we will conduct a hypothesis test which compares the difference under two conditions: all the coefficients are zero and at least one coefficient is non-zero. We will select variables by comparing different models, each containing a different subset of predictors. The best model will be considered based on F test and the model fit through R-squared value. Although the linear regression model is easy to interpret, this parametric method may produce questionable predictions if the true functional form is far from the linearity [1]. 
+
+*Measuring Review Efficiency:*
+To get the weights p and q, we assume that the objective of the model is to evaluate the maximum score of a project given the queue time and number of licenses issued (Equation (1)) and choose gradient ascent as our approach considering its strong capability of self-learning. After setting the initial weights (saying p = q = 0.5), we want to update the weights using a subset of training so that they can push down the mean square error (MSE) by iteration toward the direction where the function increases most [2]. When the variance of error is small enough, the learning process will stop until we hopefully end up at a maximum score.
+
+**REFERNCE**
+[1]  James, G., Witten, D., Hastie, T., & Tibshirani, R. (2013). An introduction to statistical learning (p76).  New York: springer.
+[2] Thalles Silva. (2018). Machine Learning 101: An Intuitive Introduction to Gradient Descent. Retrieved from  https://towardsdatascience.com/machine-learning-101-an-intuitive-introduction-to-gradient-descent-366b77b52645
