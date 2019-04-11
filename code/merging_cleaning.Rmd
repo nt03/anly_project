@@ -1,0 +1,72 @@
+---
+title: "merging CAMA AND DCRA "
+author: "jean landry binam keyanfe"
+date: "April 10, 2019"
+output: word_document
+---
+
+```{r , echo= TRUE}
+library(tidyverse)
+library(lubridate)
+```
+
+========================================================================================================================================
+
+LOADING DCRA AND MERGE CAMA DATASET
+```{r ,echo=TRUE}
+
+permit=read_csv('permit_reviews_an.csv')
+summary(permit)
+```
+
+```{r}
+cama=read_csv('cama_common.csv')
+summary(cama)
+```
+
+=====================================================================================================================================
+
+ACESSING MISSING VALUES
+
+```{r,echo=TRUE}
+# Function acessing the missing values
+permit_missing <- function(df){
+  missing <- df %>% 
+    mutate_all(is.na) %>% 
+    summarise_all(sum) %>% 
+    gather(variable, missing)
+  return(missing)
+}
+
+```
+
+
+```{r}
+#accesing missing values DCRA database
+print(permit_missing(permit))
+```
+
+```{r}
+#acessing missing values Merged cama database
+print(permit_missing(cama))
+```
+======================================================================================================================================
+
+
+=========================== MERGING THE TWO DATA BASE (DCRA AND MEREG CAMA)=============================================================
+
+```{r}
+#renaming SSL variable
+permit$SSL=permit$ssl
+
+#joinning the two datasets
+data <- permit %>% 
+  left_join(cama, by = "SSL")
+```
+
+```{r}
+#accesing missing values in the new data set
+print(permit_missing(data))
+```
+
+we commit latter to remove missing values
